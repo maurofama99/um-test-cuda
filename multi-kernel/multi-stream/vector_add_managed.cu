@@ -29,8 +29,8 @@ __global__ void Add( int N ,int Offset ,float * devA , float * devB , float *dev
 int main()
 {
 
-        int N = 4000000;
-        //unsigned long N = 1395864372;  //c.a. 1,3 * 4 GB
+        //int N = 4000000;
+        unsigned long N = 1395864368;  //c.a. 1,3 * 4 GB
         //unsigned long N = 1288490188;  //c.a. 1,2 * 4 GB
         
         int Threads = 256;
@@ -77,7 +77,7 @@ int main()
 
         const int StreamSize = N / NbStreams;
         dim3 block(1024);
-        dim3 grid(((nSize/StreamSize)+block.x-1)/block.x);
+        dim3 grid(((N/StreamSize)+block.x-1)/block.x);
 
         /************************************
                      EXECUTION
@@ -89,9 +89,9 @@ int main()
                 gpuErrchk( cudaMemcpyAsync(&devA[ Offset ], &A[ Offset ], StreamSize * sizeof(*A), cudaMemcpyHostToDevice, Stream1[ i ]) );
                 gpuErrchk( cudaMemcpyAsync(&devB[ Offset ], &B[ Offset ], StreamSize * sizeof(*B), cudaMemcpyHostToDevice, Stream1[ i ]) );
 
-                Add<<< grid, block, 0, Stream1[i]>>>( Offset+StreamSize ,Offset, devA , devB , devC );
+                Add<<< StreamSize / Threads, Threads, 0, Stream1[i]>>>( Offset+StreamSize ,Offset, devA , devB , devC );
 
-                gpuErrchk( cudaMemcpyAsync(&C1[ Offset ], &devC1[ Offset ], StreamSize * sizeof(*devC), cudaMemcpyDeviceToHost, Stream1[ i ]) );
+                gpuErrchk( cudaMemcpyAsync(&C1[ Offset ], &devC[ Offset ], StreamSize * sizeof(*devC), cudaMemcpyDeviceToHost, Stream1[ i ]) );
 
         }
         
@@ -102,9 +102,9 @@ int main()
                 gpuErrchk( cudaMemcpyAsync(&d_A[ Offset ], &A[ Offset ], StreamSize * sizeof(*A), cudaMemcpyHostToDevice, Stream2[ i ]) );
                 gpuErrchk( cudaMemcpyAsync(&d_B[ Offset ], &B[ Offset ], StreamSize * sizeof(*B), cudaMemcpyHostToDevice, Stream2[ i ]) );
 
-                Add<<< StreamSize / Threads, Threads, 0, Stream1[ i ]>>>( Offset+StreamSize ,Offset, d_A , d_B , d_C );
+                Add<<< StreamSize / Threads, Threads, 0, Stream2[ i ]>>>( Offset+StreamSize ,Offset, d_A , d_B , d_C );
 
-                gpuErrchk( cudaMemcpyAsync(&C2[ Offset ], &d_C2[ Offset ], StreamSize * sizeof(*d_C), cudaMemcpyDeviceToHost, Stream2[ i ]) );
+                gpuErrchk( cudaMemcpyAsync(&C2[ Offset ], &d_C[ Offset ], StreamSize * sizeof(*d_C), cudaMemcpyDeviceToHost, Stream2[ i ]) );
 
         }
         
