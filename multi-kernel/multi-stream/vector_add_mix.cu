@@ -29,9 +29,9 @@ __global__ void Add( int N ,int Offset ,float * devA , float * devB , float *dev
 int main()
 {
 
-        int N = 4000000;
-        //unsigned long N = 1395864372;  //c.a. 1,3 * 4 GB
-        //unsigned long N = 1288490188;  //c.a. 1,2 * 4 GB
+        //int N = 4000000;
+        unsigned long N = 1395864368;  //c.a. 1.3 * 4 GB, tot 15.6 GB
+        //unsigned long N = 1288490188;  //c.a. 1.2 * 4 GB, tot 14.4 GB
         
         int Threads = 1024;
 
@@ -40,15 +40,17 @@ int main()
         /************************************
                   HOST ALLOCATION
         ************************************/
-        float *A , *B , *C;
+        float *A , *B , *C1, *C2;
         gpuErrchk( cudaHostAlloc( (void**) &A , N * sizeof(*A) ,cudaHostAllocDefault ) );
         gpuErrchk( cudaHostAlloc( (void**) &B , N * sizeof(*B) ,cudaHostAllocDefault ) );
-        gpuErrchk( cudaHostAlloc( (void**) &C1 , N * sizeof(*C) ,cudaHostAllocDefault ) );
-        gpuErrchk( cudaHostAlloc( (void**) &C2 , N * sizeof(*C) ,cudaHostAllocDefault ) );
+        gpuErrchk( cudaHostAlloc( (void**) &C1 , N * sizeof(*C1) ,cudaHostAllocDefault ) );
+        gpuErrchk( cudaHostAlloc( (void**) &C2 , N * sizeof(*C2) ,cudaHostAllocDefault ) );
         
         for ( int i = 0; i < N; i++ ) {
                 A[ i ] = 1;
                 B[ i ] = 2;
+                C1[i] = 0;
+                C2[i] = 0;
         }
         
         /************************************
@@ -60,7 +62,7 @@ int main()
         gpuErrchk( cudaMalloc( (void**) &devC , N * sizeof(*devC)) );
         
         /************************************
-              MANAGED DEVICE ALLOCATION
+               MANAGED DEVICE ALLOCATION
         ************************************/
         float *d_A, *d_B, *d_C;
         gpuErrchk( cudaMallocManaged(  &d_A , N * sizeof(*devA)) );
@@ -70,11 +72,11 @@ int main()
     	// STREAM CREATION
         cudaStream_t Stream1[ NbStreams ];
         for ( int i = 0; i < NbStreams; i++ )
-        gpuErrchk( cudaStreamCreate(&Stream1[ i ]) );
+        	gpuErrchk( cudaStreamCreate(&Stream1[ i ]) );
         
         cudaStream_t Stream2[ NbStreams ];
         for ( int i = 0; i < NbStreams; i++ )
-        gpuErrchk( cudaStreamCreate(&Stream2[ i ]) );
+        	gpuErrchk( cudaStreamCreate(&Stream2[ i ]) );
 
         const int StreamSize = N / NbStreams;
 
@@ -88,7 +90,7 @@ int main()
                 gpuErrchk( cudaMemcpyAsync(&devA[ Offset ], &A[ Offset ], StreamSize * sizeof(*A), cudaMemcpyHostToDevice, Stream1[ i ]) );
                 gpuErrchk( cudaMemcpyAsync(&devB[ Offset ], &B[ Offset ], StreamSize * sizeof(*B), cudaMemcpyHostToDevice, Stream1[ i ]) );
 
-                Add<<< StreamSize / Threads, Threads, 0, Stream1[ i ]>>>( Offset+StreamSize ,Offset, devA , devB , devC );
+                Add<<< StreamSize / Threads, Threads, 0, Stream1[i]>>>( Offset+StreamSize ,Offset, devA , devB , devC );
 
                 gpuErrchk( cudaMemcpyAsync(&C1[ Offset ], &devC[ Offset ], StreamSize * sizeof(*devC), cudaMemcpyDeviceToHost, Stream1[ i ]) );
 
@@ -96,26 +98,31 @@ int main()
         
         for ( int i = 0; i < NbStreams; i++ )
         {
-                Offset = i * StreamSize;
+                int Offset = i * StreamSize;
 
                 gpuErrchk( cudaMemcpyAsync(&d_A[ Offset ], &A[ Offset ], StreamSize * sizeof(*A), cudaMemcpyHostToDevice, Stream2[ i ]) );
                 gpuErrchk( cudaMemcpyAsync(&d_B[ Offset ], &B[ Offset ], StreamSize * sizeof(*B), cudaMemcpyHostToDevice, Stream2[ i ]) );
 
-                Add<<< StreamSize / Threads, Threads, 0, Stream1[ i ]>>>( Offset+StreamSize ,Offset, d_A , d_B , d_C );
+                Add<<< StreamSize / Threads, Threads, 0, Stream2[ i ]>>>( Offset+StreamSize ,Offset, d_A , d_B , d_C );
 
                 gpuErrchk( cudaMemcpyAsync(&C2[ Offset ], &d_C[ Offset ], StreamSize * sizeof(*d_C), cudaMemcpyDeviceToHost, Stream2[ i ]) );
 
         }
+        
+        cudaDeviceSynchronize();
         
         /************************************
                     RESULT CHECK
         ************************************/
         for ( int i = 0; i < N; i++ ) {
                 if (C1[i] != (A[i]+B[i])) {
-                printf("mismatch at %d, was: %f, should be: %f (static)\n", i, C1[i], (A[i]+B[i])); return 1;
+                printf("mismatch at %d, was: %f, should be: %f (first)\n", i, C1[i], (A[i]+B[i])); return 1;
         	}
-        	if (C2[i] != (A[i]+B[i])) {
-                printf("mismatch at %d, was: %f, should be: %f (managed)\n", i, C2[i], (A[i]+B[i])); return 2;
+        }
+        
+                for ( int i = 0; i < N; i++ ) {
+                if (C2[i] != (A[i]+B[i])) {
+                printf("mismatch at %d, was: %f, should be: %f (second)\n", i, C2[i], (A[i]+B[i])); return 1;
         	}
         }
 
@@ -131,7 +138,7 @@ int main()
 
         gpuErrchk( cudaFreeHost(A) );
         gpuErrchk( cudaFreeHost(B) );
-        gpuErrchk( cudaFreeHost(C) );
+        gpuErrchk( cudaFreeHost(C1) );
 
         return 0;
 
