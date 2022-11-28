@@ -30,8 +30,8 @@ int main()
 {
 
         //int N = 4000000;
-        unsigned long N = 1395864368;  //c.a. 1.3 * 4 GB, tot 15.6 GB
-        //unsigned long N = 1288490188;  //c.a. 1.2 * 4 GB, tot 14.4 GB
+        //unsigned long N = 1395864368;  //c.a. 1.3 * 4 GB, tot 15.6 GB
+        unsigned long N = 1288490184;  //c.a. 1.2 * 4 GB, tot 14.4 GB
         
         int Threads = 1024;
 
