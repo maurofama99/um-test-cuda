@@ -54,14 +54,6 @@ int main()
         }
         
         /************************************
-               STATIC DEVICE ALLOCATION
-        ************************************/
-        float *devA , *devB , *devC;
-        gpuErrchk( cudaMalloc( (void**) &devA , N * sizeof(*devA)) );
-        gpuErrchk( cudaMalloc( (void**) &devB , N * sizeof(*devB)) );
-        gpuErrchk( cudaMalloc( (void**) &devC , N * sizeof(*devC)) );
-        
-        /************************************
                MANAGED DEVICE ALLOCATION
         ************************************/
         float *d_A, *d_B, *d_C;
@@ -72,6 +64,14 @@ int main()
         gpuErrchk( cudaMemPrefetchAsync(  d_B , N * sizeof(*devB), 0) );
         gpuErrchk( cudaMemPrefetchAsync(  d_A , N * sizeof(*devA), 0) );
         gpuErrchk( cudaMemPrefetchAsync(  d_C , N * sizeof(*devC), 0) );
+        
+        /************************************
+               STATIC DEVICE ALLOCATION
+        ************************************/
+        float *devA , *devB , *devC;
+        gpuErrchk( cudaMalloc( (void**) &devA , N * sizeof(*devA)) );
+        gpuErrchk( cudaMalloc( (void**) &devB , N * sizeof(*devB)) );
+        gpuErrchk( cudaMalloc( (void**) &devC , N * sizeof(*devC)) );
     	
     	// STREAM CREATION
         cudaStream_t Stream1[ NbStreams ];
