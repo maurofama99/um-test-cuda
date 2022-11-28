@@ -57,13 +57,13 @@ int main()
                MANAGED DEVICE ALLOCATION
         ************************************/
         float *d_A, *d_B, *d_C;
-        gpuErrchk( cudaMallocManaged(  &d_A , N * sizeof(*devA)) );
-        gpuErrchk( cudaMallocManaged(  &d_B , N * sizeof(*devB)) );
-        gpuErrchk( cudaMallocManaged(  &d_C , N * sizeof(*devC)) );
+        gpuErrchk( cudaMallocManaged(  &d_A , N * sizeof(*d_A)) );
+        gpuErrchk( cudaMallocManaged(  &d_B , N * sizeof(*d_B)) );
+        gpuErrchk( cudaMallocManaged(  &d_C , N * sizeof(*d_C)) );
         
-        gpuErrchk( cudaMemPrefetchAsync(  d_B , N * sizeof(*devB), 0) );
-        gpuErrchk( cudaMemPrefetchAsync(  d_A , N * sizeof(*devA), 0) );
-        gpuErrchk( cudaMemPrefetchAsync(  d_C , N * sizeof(*devC), 0) );
+        gpuErrchk( cudaMemPrefetchAsync(  d_B , N * sizeof(*d_B), 0) );
+        gpuErrchk( cudaMemPrefetchAsync(  d_A , N * sizeof(*d_A), 0) );
+        gpuErrchk( cudaMemPrefetchAsync(  d_C , N * sizeof(*d_C), 0) );
         
         /************************************
                STATIC DEVICE ALLOCATION
