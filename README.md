@@ -1,2 +1,1 @@
-# um-test-cuda
-Test set used for understanding strengths and weaknesses of CUDA Unified Memory
+Test set used for understanding CUDA Unified Memory, in particular the interaction between static and managed memory allocation.
