@@ -69,9 +69,9 @@ int main()
         gpuErrchk( cudaMallocManaged(  &d_B , N * sizeof(*devB)) );
         gpuErrchk( cudaMallocManaged(  &d_C , N * sizeof(*devC)) );
         
-        gpuErrchk( cudaMemPrefetchAsync(  &d_B , N * sizeof(*devB), 0) );
-        gpuErrchk( cudaMemPrefetchAsync(  &d_A , N * sizeof(*devA), 0) );
-        gpuErrchk( cudaMemPrefetchAsync(  &d_C , N * sizeof(*devC), 0) );
+        gpuErrchk( cudaMemPrefetchAsync(  d_B , N * sizeof(*devB), 0) );
+        gpuErrchk( cudaMemPrefetchAsync(  d_A , N * sizeof(*devA), 0) );
+        gpuErrchk( cudaMemPrefetchAsync(  d_C , N * sizeof(*devC), 0) );
     	
     	// STREAM CREATION
         cudaStream_t Stream1[ NbStreams ];
