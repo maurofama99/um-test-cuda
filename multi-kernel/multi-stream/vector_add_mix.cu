@@ -54,6 +54,19 @@ int main()
         }
         
         /************************************
+                  STREAM CREATION
+        ************************************/
+        cudaStream_t Stream1[ NbStreams ];
+        for ( int i = 0; i < NbStreams; i++ )
+        	gpuErrchk( cudaStreamCreate(&Stream1[ i ]) );
+        
+        cudaStream_t Stream2[ NbStreams ];
+        for ( int i = 0; i < NbStreams; i++ )
+        	gpuErrchk( cudaStreamCreate(&Stream2[ i ]) );
+
+        const int StreamSize = N / NbStreams;
+        
+        /************************************
                MANAGED DEVICE ALLOCATION
         ************************************/
         float *d_A, *d_B, *d_C;
@@ -66,24 +79,29 @@ int main()
         gpuErrchk( cudaMemPrefetchAsync(  d_C , N * sizeof(*d_C), 0) );
         
         /************************************
+                 EXECUTION ON MANAGED
+        ************************************/
+        for ( int i = 0; i < NbStreams; i++ )
+        {
+                int Offset = i * StreamSize;
+
+                gpuErrchk( cudaMemcpyAsync(&d_A[ Offset ], &A[ Offset ], StreamSize * sizeof(*A), cudaMemcpyHostToDevice, Stream2[ i ]) );
+                gpuErrchk( cudaMemcpyAsync(&d_B[ Offset ], &B[ Offset ], StreamSize * sizeof(*B), cudaMemcpyHostToDevice, Stream2[ i ]) );
+
+                Add<<< StreamSize / Threads, Threads, 0, Stream2[ i ]>>>( Offset+StreamSize ,Offset, d_A , d_B , d_C );
+
+                gpuErrchk( cudaMemcpyAsync(&C2[ Offset ], &d_C[ Offset ], StreamSize * sizeof(*d_C), cudaMemcpyDeviceToHost, Stream2[ i ]) );
+
+        }
+        
+        /************************************
                STATIC DEVICE ALLOCATION
         ************************************/
         float *devA , *devB , *devC;
         gpuErrchk( cudaMalloc( (void**) &devA , N * sizeof(*devA)) );
         gpuErrchk( cudaMalloc( (void**) &devB , N * sizeof(*devB)) );
         gpuErrchk( cudaMalloc( (void**) &devC , N * sizeof(*devC)) );
-    	
-    	// STREAM CREATION
-        cudaStream_t Stream1[ NbStreams ];
-        for ( int i = 0; i < NbStreams; i++ )
-        	gpuErrchk( cudaStreamCreate(&Stream1[ i ]) );
-        
-        cudaStream_t Stream2[ NbStreams ];
-        for ( int i = 0; i < NbStreams; i++ )
-        	gpuErrchk( cudaStreamCreate(&Stream2[ i ]) );
-
-        const int StreamSize = N / NbStreams;
-
+  
         /************************************
                      EXECUTION
         ************************************/
@@ -97,19 +115,6 @@ int main()
                 Add<<< StreamSize / Threads, Threads, 0, Stream1[i]>>>( Offset+StreamSize ,Offset, devA , devB , devC );
 
                 gpuErrchk( cudaMemcpyAsync(&C1[ Offset ], &devC[ Offset ], StreamSize * sizeof(*devC), cudaMemcpyDeviceToHost, Stream1[ i ]) );
-
-        }
-        
-        for ( int i = 0; i < NbStreams; i++ )
-        {
-                int Offset = i * StreamSize;
-
-                gpuErrchk( cudaMemcpyAsync(&d_A[ Offset ], &A[ Offset ], StreamSize * sizeof(*A), cudaMemcpyHostToDevice, Stream2[ i ]) );
-                gpuErrchk( cudaMemcpyAsync(&d_B[ Offset ], &B[ Offset ], StreamSize * sizeof(*B), cudaMemcpyHostToDevice, Stream2[ i ]) );
-
-                Add<<< StreamSize / Threads, Threads, 0, Stream2[ i ]>>>( Offset+StreamSize ,Offset, d_A , d_B , d_C );
-
-                gpuErrchk( cudaMemcpyAsync(&C2[ Offset ], &d_C[ Offset ], StreamSize * sizeof(*d_C), cudaMemcpyDeviceToHost, Stream2[ i ]) );
 
         }
         
