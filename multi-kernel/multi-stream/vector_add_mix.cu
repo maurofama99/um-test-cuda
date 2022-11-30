@@ -26,20 +26,22 @@ __global__ void Add( int N ,int Offset ,float * devA , float * devB , float *dev
 
 }
 
-int main()
-{
+int main() {
 
+        size_t free_t, total_t;
+
+        gpuErrchk( cudaMemGetInfo(&free_t, &total_t) );
+        
         //int N = 4000000;
-        unsigned long N = 1395864368;  //c.a. 1.3 * 4 GB, tot 15.6 GB
+        //unsigned long N = 1395864368;  //c.a. 1.3 * 4 GB, tot 15.6 GB
         //unsigned long N = 1288490184;  //c.a. 1.2 * 4 GB, tot 14.4 GB
+        unsigned long N = 0.31 * free_t;
+        
+        printf("allocating %lu bytes per array\n", N);
         
         int Threads = 1024;
 
         const int NbStreams = 8;
-        
-        size_t free_t,total_t;
-
-        gpuErrchk( cudaMemGetInfo(&free_t, &total_t) );
         
         /************************************
                   HOST ALLOCATION
@@ -51,8 +53,8 @@ int main()
         gpuErrchk( cudaHostAlloc( (void**) &C2 , N * sizeof(*C2) ,cudaHostAllocDefault ) );
         
         for ( int i = 0; i < N; i++ ) {
-                A[i] = 1;
-                B[i] = 2;
+                A[ i ] = 1;
+                B[ i ] = 2;
                 C1[i] = 0;
                 C2[i] = 0;
         }
@@ -68,16 +70,7 @@ int main()
         for ( int i = 0; i < NbStreams; i++ )
         	gpuErrchk( cudaStreamCreate(&Stream2[ i ]) );
 
-        const int StreamSizeM = N / NbStreams;
-        const int StreamSizeS = (0.31 * free_t) / sizeof(float);
-        
-        /************************************
-               STATIC DEVICE ALLOCATION
-        ************************************/
-        float *devA , *devB , *devC;
-        gpuErrchk( cudaMalloc( (void**) &devA , 0.31 * free_t) );
-        gpuErrchk( cudaMalloc( (void**) &devB , 0.31 * free_t) );
-        gpuErrchk( cudaMalloc( (void**) &devC , 0.31 * free_t) );
+        const int StreamSize = N / NbStreams;
         
         /************************************
                MANAGED DEVICE ALLOCATION
@@ -90,7 +83,7 @@ int main()
         gpuErrchk( cudaMemPrefetchAsync(  d_B , N * sizeof(*d_B), 0) );
         gpuErrchk( cudaMemPrefetchAsync(  d_A , N * sizeof(*d_A), 0) );
         gpuErrchk( cudaMemPrefetchAsync(  d_C , N * sizeof(*d_C), 0) );
-       
+        
         /************************************
                  EXECUTION ON MANAGED
         ************************************/
@@ -106,8 +99,17 @@ int main()
                 gpuErrchk( cudaMemcpyAsync(&C2[ Offset ], &d_C[ Offset ], StreamSize * sizeof(*d_C), cudaMemcpyDeviceToHost, Stream2[ i ]) );
 
         }
+        
         /************************************
-                 EXECUTION ON STATIC
+               STATIC DEVICE ALLOCATION
+        ************************************/
+        float *devA , *devB , *devC;
+        gpuErrchk( cudaMalloc( (void**) &devA , N * sizeof(*devA)) );
+        gpuErrchk( cudaMalloc( (void**) &devB , N * sizeof(*devB)) );
+        gpuErrchk( cudaMalloc( (void**) &devC , N * sizeof(*devC)) );
+  
+        /************************************
+                     EXECUTION
         ************************************/
         for ( int i = 0; i < NbStreams; i++ )
         {
