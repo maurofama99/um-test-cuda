@@ -35,7 +35,7 @@ int main() {
         //int N = 4000000;
         //unsigned long N = 1395864368;  //c.a. 1.3 * 4 GB, tot 15.6 GB
         //unsigned long N = 1288490184;  //c.a. 1.2 * 4 GB, tot 14.4 GB
-        unsigned long N = 0.31 * free_t;
+        unsigned long N = ((0.3 * free_t) / sizeof(float));
         
         printf("allocating %lu bytes per array\n", N);
         
@@ -129,15 +129,15 @@ int main() {
         /************************************
                     RESULT CHECK
         ************************************/
-        for ( int i = 0; i < N; i++ ) {
+        for ( int i = 0; i < N-6; i++ ) {
                 if (C1[i] != (A[i]+B[i])) {
-                printf("mismatch at %d, was: %f, should be: %f (first)\n", i, C1[i], (A[i]+B[i])); return 1;
+                	printf("mismatch at %d, was: %f, should be: %f (first)\n", i, C1[i], (A[i]+B[i])); return 1;
         	}
         }
         
-                for ( int i = 0; i < N; i++ ) {
+        for ( int i = 0; i < N-6; i++ ) {
                 if (C2[i] != (A[i]+B[i])) {
-                printf("mismatch at %d, was: %f, should be: %f (second)\n", i, C2[i], (A[i]+B[i])); return 1;
+                	printf("mismatch at %d, was: %f, should be: %f (second)\n", i, C2[i], (A[i]+B[i])); return 1;
         	}
         }
 
