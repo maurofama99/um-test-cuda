@@ -44,17 +44,10 @@ int main() {
                   HOST ALLOCATION
         ************************************/
         float *A , *B , *C1, *C2;
-        gpuErrchk( cudaMallocHost( (void**) &A , N * sizeof(*A) ,cudaHostAllocDefault ) );
-        gpuErrchk( cudaMallocHost( (void**) &B , N * sizeof(*B) ,cudaHostAllocDefault ) );
-        gpuErrchk( cudaMallocHost( (void**) &C1 , N * sizeof(*C1) ,cudaHostAllocDefault ) );
-        gpuErrchk( cudaMallocHost( (void**) &C2 , N * sizeof(*C2) ,cudaHostAllocDefault ) );
-        
-        for ( int i = 0; i < N; i++ ) {
-                A[ i ] = 1;
-                B[ i ] = 2;
-                C1[i] = 0;
-                C2[i] = 0;
-        }
+        gpuErrchk( cudaMallocHost( (void**) &A , N * sizeof(*A)) );
+        gpuErrchk( cudaMallocHost( (void**) &B , N * sizeof(*B)) );
+        gpuErrchk( cudaMallocHost( (void**) &C1 , N * sizeof(*C1)) );
+        gpuErrchk( cudaMallocHost( (void**) &C2 , N * sizeof(*C2)) );
         
         /************************************
                   STREAM CREATION
@@ -80,6 +73,10 @@ int main() {
         gpuErrchk( cudaMemAdvise(d_A, N * sizeof(*d_A), cudaMemAdviseSetPreferredLocation, -1) );
         gpuErrchk( cudaMemAdvise(d_B, N * sizeof(*d_A), cudaMemAdviseSetPreferredLocation, -1) );
         gpuErrchk( cudaMemAdvise(d_C, N * sizeof(*d_A), cudaMemAdviseSetPreferredLocation, -1) );
+        
+        gpuErrchk( cudaMemAdvise(d_A, N * sizeof(*d_A), cudaMemAdviseSetAccessedBy, 0) );
+        gpuErrchk( cudaMemAdvise(d_B, N * sizeof(*d_A), cudaMemAdviseSetAccessedBy, 0) );
+        gpuErrchk( cudaMemAdvise(d_C, N * sizeof(*d_A), cudaMemAdviseSetAccessedBy, 0) );
   
         /************************************
                STATIC DEVICE ALLOCATION
@@ -88,7 +85,19 @@ int main() {
         gpuErrchk( cudaMalloc( (void**) &devA , N * sizeof(*devA)) );
         gpuErrchk( cudaMalloc( (void**) &devB , N * sizeof(*devB)) );
         gpuErrchk( cudaMalloc( (void**) &devC , N * sizeof(*devC)) );
-  
+        
+        /************************************
+                 DATA INITIALIZATION
+        ************************************/
+        for ( int i = 0; i < N; i++ ) {
+                A[ i ] = 1;
+                B[ i ] = 2;
+                C1[i] = 0;
+                C2[i] = 0;
+                d_A[i] = 1;
+                d_B[i] = 2;
+                d_C[i] = 0;
+        }
         /************************************
                  EXECUTION ON STATIC
         ************************************/
@@ -115,14 +124,14 @@ int main() {
                 //gpuErrchk( cudaMemcpyAsync(&d_A[ Offset ], &A[ Offset ], StreamSize * sizeof(*A), cudaMemcpyHostToDevice, Stream2[ i ]) );
                 //gpuErrchk( cudaMemcpyAsync(&d_B[ Offset ], &B[ Offset ], StreamSize * sizeof(*B), cudaMemcpyHostToDevice, Stream2[ i ]) );
 
-                gpuErrchk( cudaMemPrefetchAsync(  d_A , N * sizeof(*d_A), -1) );  
-                gpuErrchk( cudaMemPrefetchAsync(  d_B , N * sizeof(*d_B), -1) );  
+                gpuErrchk( cudaMemPrefetchAsync( d_A[ Offset ] , StreamSize * sizeof(*A), -1) );  
+                gpuErrchk( cudaMemPrefetchAsync( d_B[ Offset ] , StreamSize * sizeof(*B), -1) );  
               
                 Add<<< StreamSize / Threads, Threads, 0, Stream2[i]>>>( Offset+StreamSize ,Offset, d_A , d_B , d_C );
           
-                gpuErrchk( cudaMemPrefetchAsync(  d_C , N * sizeof(*d_C), -1) );
+                gpuErrchk( cudaMemPrefetchAsync( d_C[Offset] , StreamSize * sizeof(*d_C), -1) );
                
-                gpuErrchk( cudaMemcpyAsync(&C2[ Offset ], &d_C[Offset], StreamSize * sizeof(*d_C), cudaMemcpyDeviceToHost, Stream2[ i ]) );
+                //gpuErrchk( cudaMemcpyAsync(&C2[ Offset ], &d_C[Offset], StreamSize * sizeof(*d_C), cudaMemcpyDeviceToHost, Stream2[ i ]) );
 
         }
         
