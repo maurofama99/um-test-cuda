@@ -146,7 +146,7 @@ int main() {
         
         for ( int i = 0; i < N-6; i++ ) {
                 if (d_C[i] != (A[i]+B[i])) {
-                	printf("mismatch at %d, was: %f, should be: %f (second)\n", i, C2[i], (A[i]+B[i])); return 1;
+                	printf("mismatch at %d, was: %f, should be: %f (second)\n", i, d_C[i], (A[i]+B[i])); return 1;
         	}
         }
   
