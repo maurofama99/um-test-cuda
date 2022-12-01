@@ -43,11 +43,10 @@ int main() {
         /************************************
                   HOST ALLOCATION
         ************************************/
-        float *A , *B , *C1, *C2;
+        float *A , *B , *C1;
         gpuErrchk( cudaMallocHost( (void**) &A , N * sizeof(*A)) );
         gpuErrchk( cudaMallocHost( (void**) &B , N * sizeof(*B)) );
         gpuErrchk( cudaMallocHost( (void**) &C1 , N * sizeof(*C1)) );
-        gpuErrchk( cudaMallocHost( (void**) &C2 , N * sizeof(*C2)) );
         
         /************************************
                   STREAM CREATION
@@ -93,7 +92,6 @@ int main() {
                 A[ i ] = 1;
                 B[ i ] = 2;
                 C1[i] = 0;
-                C2[i] = 0;
                 d_A[i] = 1;
                 d_B[i] = 2;
                 d_C[i] = 0;
@@ -147,7 +145,7 @@ int main() {
         }
         
         for ( int i = 0; i < N-6; i++ ) {
-                if (C2[i] != (A[i]+B[i])) {
+                if (d_C[i] != (A[i]+B[i])) {
                 	printf("mismatch at %d, was: %f, should be: %f (second)\n", i, C2[i], (A[i]+B[i])); return 1;
         	}
         }
