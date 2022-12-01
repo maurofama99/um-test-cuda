@@ -27,6 +27,10 @@ __global__ void Add( int N ,int Offset ,float * devA , float * devB , float *dev
 }
 
 int main() {
+        
+        cudaEvent_t start, stop;
+        cudaEventCreate(&start);
+        cudaEventCreate(&stop);
 
         size_t free_t, total_t;
 
@@ -99,6 +103,8 @@ int main() {
         /************************************
                  EXECUTION ON STATIC
         ************************************/
+        cudaEventRecord(start);
+        
         for ( int i = 0; i < NbStreams; i++ )
         {
                 int Offset = i * StreamSize;
@@ -133,7 +139,13 @@ int main() {
 
         }
         
+        
+        cudaEventRecord(stop);
+        
         cudaDeviceSynchronize();
+        cudaEventSynchronize(stop);
+        float resultms = 0;
+        cudaEventElapsedTime(&resultms, start, stop);
         
         /************************************
                     RESULT CHECK
@@ -150,7 +162,7 @@ int main() {
         	}
         }
   
-        printf("no errors\n");
+        printf("no errors, time: %f\n", resultms);
 
         // DESTROY CONTEXT
         for ( int i = 0; i < NbStreams; i++ )
